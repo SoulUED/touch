@@ -1,0 +1,22 @@
+{
+  "name": "touch",
+  "description": "The best project ever.",
+  "version": "0.1.0",
+  "homepage": "",
+  "engines": {
+    "node": ">= 0.8.0"
+  },
+  "devDependencies": {
+    "grunt": "*",
+    "grunt-depconcat": "*",
+    "grunt-depcombo": "*",
+    "grunt-contrib-copy": "*",
+    "grunt-contrib-compass": "*",
+    "grunt-contrib-cssmin": "*",
+    "grunt-contrib-coffee": "*",
+    "grunt-contrib-uglify": "*",
+    "grunt-contrib-watch": "*",
+    "grunt-contrib-clean": "*",
+    "grunt-contrib-concat": "*"
+  }
+}
