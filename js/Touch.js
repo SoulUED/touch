@@ -2,12 +2,13 @@
  * Created by margintan on 15/1/11.
  */
 (function (win, doc){
-    var _touchObject;
+    var _touchObject, _touchEvent, TouchEvent;
 
     _touchObject =  {};
+    _touchEvent = ["touchstart", "touchmove", "touchend"];
 
 
-    function combinationNodeNameIdClassNameByElement (_element) {
+    function getNodeNameIdClassNameByElement (_element) {
         var _id, _className,_nodeName;
 
         _nodeName = _element.nodeName.toLocaleLowerCase();
@@ -15,40 +16,31 @@
         _id = _element.id;
         _id = (_id && "#" + _id) || "";
 
-        _className = _element.className && ("." + _element.className.replace(/\s/g, "."));
+        _className = _element.className;
+        _className = _className && ("." + _className.replace(/\s/g, "."));
 
-
-        return _nodeName + _id  + _className;
-    }
-
-    function replaceAllWhiteSpace (_string) {
-        return _string.replace(/\s*/g, "");
+        return {
+            id: _id,
+            nodeName: _nodeName,
+            className: _className,
+            all: _nodeName + _id  + _className
+        };
     }
 
     function addCallbackTo (_elementRepresent, _event, _proxy, _callback) {
-        var _stringCallback;
-
         if (!_callback) {
-            if (!_touchObject[_elementRepresent].elementHasEvent[_elementRepresent]) {
-                _touchObject[_elementRepresent].elementHasEvent[_elementRepresent] = {}
-            }
-            if (!_touchObject[_elementRepresent].elementHasEvent[_elementRepresent][_event]) {
-                _touchObject[_elementRepresent].elementHasEvent[_elementRepresent][_event] = {}
-            }
-
-            _stringCallback = replaceAllWhiteSpace(_proxy.toString());
-            _touchObject[_elementRepresent].elementHasEvent[_elementRepresent][_event][_stringCallback] = _proxy;
-        }else{
-            if (!_touchObject[_elementRepresent].elementHasEvent[_proxy]) {
-                _touchObject[_elementRepresent].elementHasEvent[_proxy] = {}
-            }
-            if (!_touchObject[_elementRepresent].elementHasEvent[_proxy][_event]) {
-                _touchObject[_elementRepresent].elementHasEvent[_proxy][_event] = {}
-            }
-            _stringCallback = replaceAllWhiteSpace(_callback.toString());
-
-            _touchObject[_elementRepresent].elementHasEvent[_proxy][_event][_stringCallback] = _callback;
+            _callback = _proxy;
+            _proxy = _elementRepresent;
         }
+
+        if (!_touchObject[_elementRepresent].elementHasEvent[_proxy]) {
+            _touchObject[_elementRepresent].elementHasEvent[_proxy] = {}
+        }
+        if (!_touchObject[_elementRepresent].elementHasEvent[_proxy][_event]) {
+            _touchObject[_elementRepresent].elementHasEvent[_proxy][_event] = {}
+        }
+
+        _touchObject[_elementRepresent].elementHasEvent[_proxy][_event][_callback.toString().replace(/\s*/g, "")] = _callback;
     }
 
     /**
@@ -128,13 +120,12 @@
     };
 
     getFireEvent._popUp = function (target, _elementRepresent, isHasEvent, _eventName) {
-        var _element, _touchEventObject, _id, _className, _nodeName, _REX;
+        var _attributeNodeIdClass,_touchEventObject, _id, _className, _nodeName, _REX;
 
-        _element = target;
-
-        _id = _element.id && "#" + _element.id;
-        _nodeName = _element.nodeName.toLocaleLowerCase();
-        _className = _element.className && ("." + _element.className.replace(/\s/g, "."));
+        _attributeNodeIdClass = getNodeNameIdClassNameByElement(target).all;
+        _id = _attributeNodeIdClass.id;
+        _nodeName = _attributeNodeIdClass.nodeName;
+        _className = _attributeNodeIdClass.className;
 
         _touchEventObject = _touchObject[_elementRepresent].elementHasEvent;
 
@@ -157,10 +148,9 @@
 
     };
 
-    function Touch(_elementRepresents, _element, _event, _proxy, _callback) {
-        var _elementRepresent, thisActionType, startX, startY, endX, endY, _slideFireDistance, _slideError, _dragError;
+    function Touch(_elementRepresent, _element, _event, _proxy, _callback) {
+        var thisActionType, startX, dateStart, dateEnd, startY, endX, endY, _slideFireDistance, _slideError, _dragError, _funcs;
 
-        _elementRepresent = _elementRepresents;
 
         _touchObject[_elementRepresent] = {};
         _touchObject[_elementRepresent].elementHasEvent = {};
@@ -170,23 +160,24 @@
         _slideError = 30;
         _dragError = 30;
 
-        function handleStart (e) {
-            e.preventDefault();
+        _funcs = [function (e) {
             var _eToucheObject;
-            _eToucheObject = e.touches[0];
 
+            _eToucheObject = e.touches[0];
             thisActionType = {};
+
+            e.preventDefault();
             thisActionType.start = e.type;
+            dateStart = Date.now();
 
             startX = _eToucheObject.clientX;
             startY = _eToucheObject.clientY;
-        }
-
-        function handleMove (e) {
-            e.preventDefault();
+        }, function (e) {
             var _eToucheObject, moveX, moveY, dragX, dragY, _eventName, isHasEvent;
 
             thisActionType.move = e.type;
+
+            e.preventDefault();
 
             debounce(function (e) {
                 _eToucheObject = e.touches[0];
@@ -222,10 +213,7 @@
                 });
 
             }, 100)(e);
-        }
-
-        function handleEnd (e) {
-            e.preventDefault();
+        }, function (e) {
             var isHasEvent, _eTouchObject, _slideDistanceY, _slideDistanceX, _eventName, _slideDirection;
             thisActionType.end = e.type;
 
@@ -233,9 +221,11 @@
 
             endX = _eTouchObject.clientX;
             endY = _eTouchObject.clientY;
-
             _slideDistanceY = Math.abs(startY - endY);
             _slideDistanceX = Math.abs(startX - endX);
+            dateEnd = Date.now();
+
+            e.preventDefault();
 
             /**
              * _slideDirection: 1 up
@@ -259,7 +249,7 @@
                 }
             }
 
-            if (!thisActionType.move) {
+            if (dateEnd - dateStart < 100) {
                 _eventName = "tap";
             }else if(thisActionType.move){
                 if (_slideDistanceY >= _slideFireDistance || _slideDistanceX >= _slideFireDistance) {
@@ -282,18 +272,17 @@
 
 
             isHasEvent = _eventName && getFireEvent(e, _elementRepresent, _eventName);
-
             if (!isHasEvent) return;
-
             isHasEvent[_eventName][0] && Touch._fireEvent.call(isHasEvent[_eventName], isHasEvent.target, e, {
                 slideX: _slideDistanceX,
                 slideY: _slideDistanceY
             });
-        }
+        }];
 
-        _element.addEventListener("touchstart", handleStart, false);
-        _element.addEventListener("touchmove", handleMove, false);
-        _element.addEventListener("touchend", handleEnd, false);
+
+        _touchEvent.forEach(function (value,index) {
+           _element.addEventListener(value, _funcs[index], false);
+        });
 
         addCallbackTo(_elementRepresent, _event, _proxy, _callback);
     }
@@ -306,8 +295,8 @@
         })
     };
 
-    var _Touch = function (_element, _event, _proxy, _callback) {
-        var _elementRepresent = combinationNodeNameIdClassNameByElement(_element);
+    TouchEvent = function (_element, _event, _proxy, _callback) {
+        var _elementRepresent = getNodeNameIdClassNameByElement(_element).all;
         if (_touchObject[_elementRepresent]) {
             addCallbackTo(_elementRepresent, _event, _proxy, _callback);
             return _touchObject[_elementRepresent]._touchObject;
@@ -316,4 +305,9 @@
         }
     };
 
+    if ( typeof define === "function" && define.amd ) {
+        define( "touch", [], function() {
+            return TouchEvent;
+        });
+    }
 })(window, document);
