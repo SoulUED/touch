@@ -1,7 +1,5 @@
-/**
- * Created by margintan on 15/1/11.
- */
-(function (win, doc){
+
+(function (){
     var _touchObject, _touchEvent, TouchEvent;
 
     _touchObject =  {};
@@ -88,7 +86,6 @@
 
         isHasEvent = {};
         isHasEvent[_eventName] =[];
-
         getFireEvent._popUp(e.target, _elementRepresent, isHasEvent, _eventName);
 
         return isHasEvent ? isHasEvent : false;
@@ -101,7 +98,7 @@
         _rex = "[" + _nodeName + "]*";
 
         if (_id) {
-            _rex = _rex + "[" + _id + "]{0,1}"
+            _rex = _rex + "[" + _id + "]*"
         }
 
         if (_classNameArr) {
@@ -122,7 +119,7 @@
     getFireEvent._popUp = function (target, _elementRepresent, isHasEvent, _eventName) {
         var _attributeNodeIdClass,_touchEventObject, _id, _className, _nodeName, _REX;
 
-        _attributeNodeIdClass = getNodeNameIdClassNameByElement(target).all;
+        _attributeNodeIdClass = getNodeNameIdClassNameByElement(target);
         _id = _attributeNodeIdClass.id;
         _nodeName = _attributeNodeIdClass.nodeName;
         _className = _attributeNodeIdClass.className;
@@ -130,7 +127,6 @@
         _touchEventObject = _touchObject[_elementRepresent].elementHasEvent;
 
         _REX =  new RegExp(getFireEvent._createRex(_nodeName, _id, _className));
-
         for (var i in _touchEventObject) {
             if ( i  == i.match(_REX)[0]) {
                 for (var z in _touchEventObject[i][_eventName]) {
@@ -191,9 +187,9 @@
                 if (dragX < _dragError || dragY < _dragError) {
                     if (dragX > dragY) {
                         if (moveX - startX > 0) {
-                            _eventName = "dragLeft";
-                        }else if (moveX -startX < 0) {
                             _eventName = "dragRight";
+                        }else if (moveX -startX < 0) {
+                            _eventName = "dragLeft";
                         }
                     }else if (dragX < dragY) {
                         if (moveY - startY > 0) {
@@ -249,7 +245,7 @@
                 }
             }
 
-            if (dateEnd - dateStart < 100) {
+            if (dateEnd - dateStart < TouchEvent.tapTime || !thisActionType.move) {
                 _eventName = "tap";
             }else if(thisActionType.move){
                 if (_slideDistanceY >= _slideFireDistance || _slideDistanceX >= _slideFireDistance) {
@@ -270,9 +266,9 @@
                 }
             }
 
-
             isHasEvent = _eventName && getFireEvent(e, _elementRepresent, _eventName);
             if (!isHasEvent) return;
+
             isHasEvent[_eventName][0] && Touch._fireEvent.call(isHasEvent[_eventName], isHasEvent.target, e, {
                 slideX: _slideDistanceX,
                 slideY: _slideDistanceY
@@ -281,7 +277,7 @@
 
 
         _touchEvent.forEach(function (value,index) {
-           _element.addEventListener(value, _funcs[index], false);
+            _element.addEventListener(value, _funcs[index], false);
         });
 
         addCallbackTo(_elementRepresent, _event, _proxy, _callback);
@@ -304,10 +300,11 @@
             return new Touch(_elementRepresent, _element, _event, _proxy, _callback);
         }
     };
+    
+    TouchEvent.tapTime = 300;
 
-    if ( typeof define === "function" && define.amd ) {
-        define( "touch", [], function() {
-            return TouchEvent;
-        });
+    if ( typeof module != 'undefined' && module.exports ) {
+        module.exports = TouchEvent;
     }
-})(window, document);
+
+})();
